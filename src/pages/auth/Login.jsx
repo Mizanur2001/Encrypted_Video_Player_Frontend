@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Login = () => {
     const [email, setEmail] = useState("");
@@ -51,8 +52,8 @@ const Login = () => {
                                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                                         {/* simpler envelope icon */}
                                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                                            <path d="M3 8.5V18a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                            <path d="M3 8.5l9 6 9-6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <path d="M3 8.5V18a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M3 8.5l9 6 9-6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                     </span>
                                     <input
@@ -109,7 +110,7 @@ const Login = () => {
                             </div>
 
                             <div className="flex gap-3">
-                                <button type="button" className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm flex items-center justify-center gap-2 text-sm">
+                                <button type="button" className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm flex items-center justify-center gap-2 text-sm" onClick={()=>{toast.error("Google sign-in not allowed",{duration:4000})}}>
                                     {/* cleaner Google "G" mark */}
                                     <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
                                         <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.6h5.6c-.2 1.1-1 2.6-2.6 3.4v2.8h4.2c2.5-2.3 3.8-5.8 3.8-9.9z"/>
@@ -119,7 +120,11 @@ const Login = () => {
                                     </svg>
                                     Google
                                 </button>
-                                <button type="button" className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg hover:opacity-95 text-sm">
+                                <button type="button" className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg hover:opacity-95 text-sm flex items-center justify-center gap-2" onClick={()=>{toast.error("GitHub sign-in not allowed",{duration:4000})}}>
+                                    {/* GitHub mark (Octocat) */}
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                                        <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.38-3.88-1.38-.53-1.36-1.3-1.72-1.3-1.72-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.76.41-1.27.75-1.56-2.56-.29-5.26-1.28-5.26-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.07 0 0 .97-.31 3.18 1.18a11.03 11.03 0 012.9-.39c.98.01 1.97.13 2.9.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.6.24 2.78.12 3.07.74.81 1.19 1.84 1.19 3.1 0 4.42-2.71 5.39-5.29 5.67.42.36.8 1.08.8 2.18 0 1.57-.01 2.84-.01 3.23 0 .31.21.68.8.56A11.51 11.51 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/>
+                                    </svg>
                                     GitHub
                                 </button>
                             </div>
