@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const navigate = useNavigate();
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -14,7 +16,7 @@ const Login = () => {
         }
         setError("");
         // TODO: Add authentication logic here
-        alert("Login successful!");
+        navigate('/auth/verify');
     };
 
     return (
