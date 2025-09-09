@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const Verify = () => {
   const navigate = useNavigate();
@@ -68,9 +69,11 @@ const Verify = () => {
     setLoading(true);
     setError("");
     try {
+      console.log(API_BASE_URL);
+      
       // TODO: Replace with actual verification API call
       await new Promise((r) => setTimeout(r, 900));
-      navigate("/"); // adjust destination as needed
+      navigate("/"); 
     } catch {
       setError("Invalid code. Please try again.");
     } finally {
