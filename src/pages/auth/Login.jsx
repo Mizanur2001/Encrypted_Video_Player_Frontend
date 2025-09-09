@@ -1,23 +1,40 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import axios from 'axios'
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 
 const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (loading) return;
         if (!email || !password) {
             setError("Please enter both email and password.");
             return;
         }
         setError("");
-        // TODO: Add authentication logic here
-        navigate('/auth/verify');
+        setLoading(true);
+        axios.post(`${API_BASE_URL}/api/v1/auth/login`, { email, password }).then((data) => {
+            if (data?.data?.code === 202) {
+                return toast.error(data?.data?.error || "Login failed. Please try again.", { duration: 4000 });
+            }
+            toast.success(data?.data?.data || "OTP sent successfully", { duration: 4000 });
+            setTimeout(() => {
+                navigate('/auth/verify');
+            }, 4000);
+
+        }).catch((err) => {
+            toast.error(err.response?.data?.message || "Server error. Connect with system admin", { duration: 4000 });
+        }).finally(() => {
+            setLoading(false);
+        });
     };
 
     return (
@@ -98,9 +115,10 @@ const Login = () => {
 
                             <button
                                 type="submit"
-                                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-pink-500 text-white font-semibold rounded-lg shadow-md hover:scale-[1.01] transform transition"
+                                disabled={loading}
+                                className={`w-full py-3 bg-gradient-to-r from-indigo-600 to-pink-500 text-white font-semibold rounded-lg shadow-md transform transition ${loading ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.01]'}`}
                             >
-                                Sign in
+                                {loading ? 'Signing in...' : 'Sign in'}
                             </button>
 
                             <div className="flex items-center gap-3">
@@ -110,20 +128,20 @@ const Login = () => {
                             </div>
 
                             <div className="flex gap-3">
-                                <button type="button" className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm flex items-center justify-center gap-2 text-sm" onClick={()=>{toast.error("Google sign-in not allowed",{duration:4000})}}>
+                                <button type="button" className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm flex items-center justify-center gap-2 text-sm" onClick={() => { toast.error("Google sign-in not allowed", { duration: 4000 }) }}>
                                     {/* cleaner Google "G" mark */}
                                     <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                                        <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.6h5.6c-.2 1.1-1 2.6-2.6 3.4v2.8h4.2c2.5-2.3 3.8-5.8 3.8-9.9z"/>
-                                        <path fill="#34A853" d="M12 22c2.7 0 5-0.9 6.6-2.5l-4-2.6c-0.9 0.6-2 1-3 1-2.3 0-4.2-1.6-4.9-3.8H3.9v2.4C5.6 19.9 8.6 22 12 22z"/>
-                                        <path fill="#FBBC05" d="M7.1 14.1c-0.2-0.6-0.3-1.2-0.3-1.8s0.1-1.2 0.3-1.8V8.1H3.9C3.4 9.4 3 10.6 3 12s0.4 2.6 0.9 3.9l3.2-1.8z"/>
-                                        <path fill="#EA4335" d="M12 6.5c1.5 0 2.9 0.5 4 1.5l3-3C17 2.5 14.7 1.5 12 1.5 8.6 1.5 5.6 3.6 3.9 6.1l3.2 2.4C7.8 7.9 9.7 6.5 12 6.5z"/>
+                                        <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.6h5.6c-.2 1.1-1 2.6-2.6 3.4v2.8h4.2c2.5-2.3 3.8-5.8 3.8-9.9z" />
+                                        <path fill="#34A853" d="M12 22c2.7 0 5-0.9 6.6-2.5l-4-2.6c-0.9 0.6-2 1-3 1-2.3 0-4.2-1.6-4.9-3.8H3.9v2.4C5.6 19.9 8.6 22 12 22z" />
+                                        <path fill="#FBBC05" d="M7.1 14.1c-0.2-0.6-0.3-1.2-0.3-1.8s0.1-1.2 0.3-1.8V8.1H3.9C3.4 9.4 3 10.6 3 12s0.4 2.6 0.9 3.9l3.2-1.8z" />
+                                        <path fill="#EA4335" d="M12 6.5c1.5 0 2.9 0.5 4 1.5l3-3C17 2.5 14.7 1.5 12 1.5 8.6 1.5 5.6 3.6 3.9 6.1l3.2 2.4C7.8 7.9 9.7 6.5 12 6.5z" />
                                     </svg>
                                     Google
                                 </button>
-                                <button type="button" className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg hover:opacity-95 text-sm flex items-center justify-center gap-2" onClick={()=>{toast.error("GitHub sign-in not allowed",{duration:4000})}}>
+                                <button type="button" className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg hover:opacity-95 text-sm flex items-center justify-center gap-2" onClick={() => { toast.error("GitHub sign-in not allowed", { duration: 4000 }) }}>
                                     {/* GitHub mark (Octocat) */}
                                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                                        <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.38-3.88-1.38-.53-1.36-1.3-1.72-1.3-1.72-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.76.41-1.27.75-1.56-2.56-.29-5.26-1.28-5.26-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.07 0 0 .97-.31 3.18 1.18a11.03 11.03 0 012.9-.39c.98.01 1.97.13 2.9.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.6.24 2.78.12 3.07.74.81 1.19 1.84 1.19 3.1 0 4.42-2.71 5.39-5.29 5.67.42.36.8 1.08.8 2.18 0 1.57-.01 2.84-.01 3.23 0 .31.21.68.8.56A11.51 11.51 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/>
+                                        <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.38-3.88-1.38-.53-1.36-1.3-1.72-1.3-1.72-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.76.41-1.27.75-1.56-2.56-.29-5.26-1.28-5.26-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.07 0 0 .97-.31 3.18 1.18a11.03 11.03 0 012.9-.39c.98.01 1.97.13 2.9.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.6.24 2.78.12 3.07.74.81 1.19 1.84 1.19 3.1 0 4.42-2.71 5.39-5.29 5.67.42.36.8 1.08.8 2.18 0 1.57-.01 2.84-.01 3.23 0 .31.21.68.8.56A11.51 11.51 0 0023.5 12C23.5 5.65 18.35.5 12 .5z" />
                                     </svg>
                                     GitHub
                                 </button>
