@@ -11,7 +11,7 @@ function App() {
       <Toaster richColors />
       <Router>
         <Routes>
-          <Route path="/" element={<VideoPlayer />} />
+          <Route path="/" element={localStorage.getItem("evp_token") ? <VideoPlayer /> : <Login />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/verify" element={<Verify />} />
         </Routes>

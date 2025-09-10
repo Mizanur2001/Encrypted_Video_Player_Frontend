@@ -26,6 +26,7 @@ const Login = () => {
                 return toast.error(data?.data?.error || "Login failed. Please try again.", { duration: 4000 });
             }
             toast.success(data?.data?.data || "OTP sent successfully", { duration: 4000 });
+            localStorage.setItem('evp_email', email);
             setTimeout(() => {
                 navigate('/auth/verify');
             }, 4000);

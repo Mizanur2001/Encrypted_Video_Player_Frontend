@@ -1,5 +1,8 @@
+import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { publicIpv4 } from 'public-ip';
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const Verify = () => {
@@ -69,11 +72,22 @@ const Verify = () => {
     setLoading(true);
     setError("");
     try {
-      console.log(API_BASE_URL);
-      
-      // TODO: Replace with actual verification API call
-      await new Promise((r) => setTimeout(r, 900));
-      navigate("/"); 
+      const ip = await publicIpv4();
+      console.log("Public IPv4 Address:", ip);
+      const email = localStorage.getItem("evp_email");
+      axios.post(`${API_BASE_URL}/api/v1/auth/verify-otp`, { otp: code, ip, email }).then(async (response) => {
+        if (response.data.code === 202) {
+          return toast.error(response.data.error || "Verification failed. Try again.");
+        }
+        localStorage.setItem("evp_token", response?.data?.data?.token);
+        localStorage.removeItem("evp_email");
+        toast.success("Verification successful! Redirecting...");
+        await new Promise((r) => setTimeout(r, 900));
+        navigate("/");
+        window.location.reload();
+      }).catch((error) => {
+        toast.error(error.response?.data?.message || "Failed to verify. Connect with system admin.");
+      })
     } catch {
       setError("Invalid code. Please try again.");
     } finally {
