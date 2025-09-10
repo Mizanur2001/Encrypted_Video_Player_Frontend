@@ -99,7 +99,14 @@ const Verify = () => {
     if (countdown > 0 || sending) return;
     setSending(true);
     try {
-      // TODO: call resend OTP API
+      axios.post(`${API_BASE_URL}/api/v1/auth/resend-otp`, { email: localStorage.getItem("evp_email") }).then(async (response) => {
+        if (response.data.code === 202) {
+          return toast.error(response.data.error || "Resend failed. Try again.");
+        }
+        toast.success("Verification code resent!");
+      }).catch((error) => {
+        toast.error(error.response?.data?.message || "Failed to resend. Connect with system admin.");
+      });
       await new Promise((r) => setTimeout(r, 800));
       setCountdown(30);
     } catch {
