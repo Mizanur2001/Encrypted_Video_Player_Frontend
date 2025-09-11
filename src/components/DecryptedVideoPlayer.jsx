@@ -183,7 +183,7 @@ export default function DecryptedVideoPlayer({ video, onClose }) {
 
                         if (wasInitial) {
                             try {
-                                videoRef.current.muted = true;
+                                videoRef.current.muted = false;
                                 await videoRef.current.play().catch(() => {});
                             } catch {}
                         }
