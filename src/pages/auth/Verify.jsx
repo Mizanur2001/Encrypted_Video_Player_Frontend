@@ -74,6 +74,7 @@ const Verify = () => {
     try {
       const ip = await publicIpv4();
       console.log("Public IPv4 Address:", ip);
+      try { localStorage.setItem("evp_ip", ip); } catch {}
       const email = localStorage.getItem("evp_email");
       axios.post(`${API_BASE_URL}/api/v1/auth/verify-otp`, { otp: code, ip, email }).then(async (response) => {
         if (response.data.code === 202) {

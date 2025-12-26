@@ -3,6 +3,7 @@ import { publicIpv4 } from "public-ip";
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB
+const PREFETCH_CHUNKS = 2;
 const MAX_BUFFER_AHEAD_SECONDS = 60;
 const BUFFER_KEEP_BEHIND_SECONDS = 10;
 
@@ -41,15 +42,22 @@ export default function DecryptedVideoPlayer({ video, onClose }) {
     useEffect(() => {
         if (!video) return;
         let aborted = false;
-        let nextRangeStart = 0;
         let totalSize = null;
         let key = null;
         let ivBuf = null;
 
+        // Prefetch pipeline state
+        let fetchCursor = 0;
+        let appendCursor = 0;
+        let inFlight = 0;
+        const queue = [];
+
         async function setup() {
             try {
                 setLoading(true);
-                const ip = await publicIpv4();
+                const cachedIp = localStorage.getItem("evp_ip");
+                const ip = cachedIp || (await publicIpv4());
+                try { localStorage.setItem("evp_ip", ip); } catch {}
 
                 // Get encryption key/iv from server
                 const keyResp = await fetch(`${BASE_URL}/api/v1/video/get-video-key`, {
@@ -83,7 +91,7 @@ export default function DecryptedVideoPlayer({ video, onClose }) {
 
                         sourceBufferRef.current.addEventListener("updateend", () => {
                             maintainBufferedRanges();
-                            appendNextChunkIfNeeded();
+                            pump();
                         });
 
                         // determine total size via 0-0 range request
@@ -102,7 +110,11 @@ export default function DecryptedVideoPlayer({ video, onClose }) {
                         const m = contentRange.match(/\/(\d+)$/);
                         totalSize = m ? parseInt(m[1], 10) : null;
 
-                        await appendNextChunkIfNeeded();
+                        // init cursors
+                        fetchCursor = 0;
+                        appendCursor = 0;
+
+                        pump();
                     } catch {
                         try { if (ms && ms.readyState === "open") ms.endOfStream("decode"); } catch (_) {}
                     }
@@ -137,58 +149,85 @@ export default function DecryptedVideoPlayer({ video, onClose }) {
                     return new Uint8Array(decrypted);
                 }
 
-                async function appendNextChunkIfNeeded() {
-                    if (aborted) return;
-                    const sb = sourceBufferRef.current;
-                    const msRef = mediaSourceRef.current;
-                    if (!sb || !msRef) return;
-                    if (msRef.readyState !== "open") return;
-                    const attached = Array.prototype.indexOf.call(msRef.sourceBuffers, sb) !== -1;
-                    if (!attached) return;
-                    if (sb.updating) return;
-                    if (totalSize !== null && nextRangeStart >= totalSize) {
-                        try { msRef.endOfStream(); } catch (_) {}
-                        return;
-                    }
-
-                    // limit buffered ahead
-                    const now = (videoRef.current && !isNaN(videoRef.current.currentTime)) ? videoRef.current.currentTime : 0;
+                function getBufferedAheadSeconds(sb, now) {
                     let bufferedAhead = 0;
                     for (let i = 0; i < sb.buffered.length; i++) {
                         const s = sb.buffered.start(i);
                         const e = sb.buffered.end(i);
                         if (e > now) bufferedAhead += Math.max(0, e - Math.max(s, now));
                     }
-                    if (bufferedAhead > MAX_BUFFER_AHEAD_SECONDS) {
-                        console.log("Buffered ahead", bufferedAhead, "s > max", MAX_BUFFER_AHEAD_SECONDS, "- waiting");
-                        setTimeout(() => appendNextChunkIfNeeded(), 500);
+                    return bufferedAhead;
+                }
+
+                function prefetch() {
+                    if (aborted) return;
+                    const sb = sourceBufferRef.current;
+                    const msRef = mediaSourceRef.current;
+                    const v = videoRef.current;
+                    if (!sb || !msRef || !v) return;
+                    if (msRef.readyState !== "open") return;
+                    if (totalSize == null) return;
+
+                    const now = !isNaN(v.currentTime) ? v.currentTime : 0;
+                    const bufferedAhead = getBufferedAheadSeconds(sb, now);
+                    if (bufferedAhead > MAX_BUFFER_AHEAD_SECONDS) return;
+
+                    while (!aborted && inFlight + queue.length < PREFETCH_CHUNKS && fetchCursor < totalSize) {
+                        const start = fetchCursor;
+                        const end = Math.min(start + CHUNK_SIZE - 1, totalSize - 1);
+
+                        inFlight++;
+                        fetchDecryptRange(start, end)
+                            .then((chunk) => {
+                                queue.push({ start, end, chunk });
+                            })
+                            .catch(() => {
+                                try { if (msRef && msRef.readyState === "open") msRef.endOfStream("network"); } catch {}
+                            })
+                            // eslint-disable-next-line no-loop-func
+                            .finally(() => {
+                                inFlight--;
+                                pump();
+                            });
+
+                        fetchCursor = end + 1;
+                    }
+                }
+
+                function pump() {
+                    if (aborted) return;
+                    const sb = sourceBufferRef.current;
+                    const msRef = mediaSourceRef.current;
+                    if (!sb || !msRef) return;
+                    if (msRef.readyState !== "open") return;
+
+                    // Always keep pipeline running
+                    prefetch();
+
+                    if (sb.updating) return;
+
+                    if (totalSize != null && appendCursor >= totalSize && queue.length === 0 && inFlight === 0) {
+                        try { msRef.endOfStream(); } catch (_) {}
                         return;
                     }
 
-                    const start = nextRangeStart;
-                    const end = Math.min(start + CHUNK_SIZE - 1, totalSize ? totalSize - 1 : start + CHUNK_SIZE - 1);
+                    const nextIdx = queue.findIndex((q) => q.start === appendCursor);
+                    if (nextIdx === -1) return;
+
+                    const item = queue.splice(nextIdx, 1)[0];
+                    const wasInitial = appendCursor === 0;
 
                     try {
-                        const chunk = await fetchDecryptRange(start, end);
-                        if (aborted) return;
-                        if (!sb || !msRef || msRef.readyState !== "open") return;
-                        const stillAttached = Array.prototype.indexOf.call(msRef.sourceBuffers, sb) !== -1;
-                        if (!stillAttached) return;
-
-                        const wasInitial = nextRangeStart === 0;
-
-                        console.log("Appending chunk, ms.readyState=", msRef.readyState, " sb.updating=", sb.updating, " nextRangeStart=", nextRangeStart);
-                        sb.appendBuffer(chunk);
-                        nextRangeStart = end + 1;
-
+                        sb.appendBuffer(item.chunk);
+                        appendCursor = item.end + 1;
                         if (wasInitial) {
                             try {
                                 videoRef.current.muted = false;
-                                await videoRef.current.play().catch(() => {});
+                                videoRef.current.play().catch(() => {});
                             } catch {}
                         }
                     } catch {
-                        try { if (msRef && msRef.readyState === "open") msRef.endOfStream("network"); } catch {}
+                        try { if (msRef && msRef.readyState === "open") msRef.endOfStream("decode"); } catch (_) {}
                     }
                 }
 
