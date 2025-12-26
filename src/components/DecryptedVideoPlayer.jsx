@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { publicIpv4 } from "public-ip";
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-const CHUNK_SIZE = 256 * 1024; // 256 KB
+const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB
 const MAX_BUFFER_AHEAD_SECONDS = 60;
 const BUFFER_KEEP_BEHIND_SECONDS = 10;
 
