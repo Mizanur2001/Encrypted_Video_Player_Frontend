@@ -295,15 +295,33 @@ export default function DecryptedVideoPlayer({ video, onClose }) {
     if (!video) return null;
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 p-4 z-50">
-            <div className="bg-white rounded-lg w-full max-w-4xl overflow-hidden">
-                <div className="flex items-center justify-between p-2 border-b">
-                    <div className="font-medium">{video.title}</div>
-                    <button onClick={onClose} className="px-3 py-1">✕</button>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 z-50 transition-opacity duration-300">
+            <div className="bg-slate-900 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[95vh]">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50">
+                    <h3 className="font-semibold text-lg text-slate-100 truncate pr-4">{video.title}</h3>
+                    <button 
+                        onClick={onClose} 
+                        className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        aria-label="Close player"
+                    >
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
-                <div className="bg-black">
-                    {loading && <div className="text-white p-4">Preparing encrypted stream...</div>}
-                    <video ref={videoRef} controls className="w-full max-h-[90vh]" />
+                <div className="relative bg-black flex-1 flex items-center justify-center overflow-hidden group">
+                    {loading && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
+                            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <div className="text-indigo-400 font-medium animate-pulse">Decrypting stream...</div>
+                        </div>
+                    )}
+                    <video 
+                        ref={videoRef} 
+                        controls 
+                        autoPlay
+                        className="w-full h-full max-h-[80vh] object-contain focus:outline-none" 
+                    />
                 </div>
             </div>
         </div>
