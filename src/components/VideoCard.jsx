@@ -36,7 +36,7 @@ const VideoCard = ({ video, onOpen }) => {
 
         // prefer explicit props, fallback to localStorage (adjust keys as needed)
         const token = localStorage.getItem("evp_token");
-        const clientIp = ip;
+        const clientIp = ip || localStorage.getItem("evp_ip");
 
         // if no token/ip provided, attempt direct image load (may fail if server requires auth)
         if (!token || !clientIp) {
