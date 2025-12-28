@@ -56,6 +56,7 @@ const VideoPlayer = () => {
                     setError("Failed to load videos");
                     toast.error("Error fetching video info");
                     localStorage.removeItem("evp_token");
+                    localStorage.removeItem("evp_ip");
                     window.location.reload();
                 }
             } finally {
